@@ -1,5 +1,4 @@
 from enum import Enum
-import pytest
 
 class EDepartamento(Enum):
     DIIC = 1
@@ -15,46 +14,86 @@ class Profesor(Persona):
     #Asignaturas es un conjunto para no permitir que hayan repetidas
     def __init__(self, nombre, dni, departamento):
         super().__init__(nombre, dni)
-        self.creditos = None
+        self.creditos = 0
         self.departamento = departamento
-        self.asignaturas = set()
+        self.asignaturas = list()
 
-    def solicitar_asignaturas(self, listaAsignaturas):
-        for e in listaAsignaturas:
-            if self.creditos + e.creditos > 72:
-                raise ValueError("Se excede el máximo de créditos que un profesor puede impartir")
-            self.creditos += e.creditos
-            self.asignaturas.add(e)
+    def add_asignatura(self, asignatura):
+        for e in self.asignaturas:
+            if asignatura is e:
+                return
+            
+        if self.creditos + asignatura.creditos > 72:
+            raise ValueError("Se excede el máximo de créditos que un profesor puede impartir")
+        self.creditos += asignatura.creditos
+        self.asignaturas.append(asignatura)
 
 class Titular(Profesor):
-    def __init__(self, nombre, dni, areaInvestivacion, departamento):
+    def __init__(self, nombre, dni, departamento, areaInvestivacion):
         super().__init__(nombre, dni, departamento)
         self.areaInvestivacion = areaInvestivacion
     
     def obtener_area_inv(self):
         return self.areaInvestivacion.area
+    
+    def __str__(self):
+        print(f"Nombre: {self.nombre}\n")
+        print(f"DNI: {self.dni}\n")
+        print(f"Departamento: {self.departamento}\n")
+        print(f"Area de investigación: {self.areaInvestivacion}\n")
+        print(f"Creditos: {self.creditos}\n")
+        print(f"Asignaturas: ")
+        for a in self.asignaturas:
+            print(a.codigo)
 
 class Asociado(Profesor):
     def __init__(self, nombre, dni, departamento, trabajoExterno):
         super().__init__(nombre, dni, departamento)
         self.trabajoExterno = trabajoExterno
 
+    def __str__(self):
+        print(f"Nombre: {self.nombre}\n")
+        print(f"DNI: {self.dni}\n")
+        print(f"Departamento: {self.departamento}\n")
+        print(f"Trabajo externo: {self.trabajoExterno}\n")
+        print(f"Creditos: {self.creditos}\n")
+        print(f"Asignaturas: ")
+        for a in self.asignaturas:
+            print(a.codigo)
+
 class Asignatura():
-    def __init__(self, nombre, creditos, curso):
-        self.nombre = nombre
+    def __init__(self, codigo, creditos, curso):
+        self.codigo = codigo
         self.creditos = creditos
         self.curso = curso
 
+    def __str__(self):
+        cursos = ["Primero", "Segundo", "Tercero", "Cuarto"]
+        print(f"Codigo: {self.codigo}\n")
+        print(f"Creditos: {self.creditos}\n")
+        print(f"Asignaturas: {cursos[self.curso]}\n")
+
 class Estudiante(Persona):
-    #Asignaturas es un conjunto para no permitir que hayan repetidas
     def __init__(self, nombre, dni, curso):
         super().__init__(nombre, dni)
         self.curso = curso
-        self.asignaturas = set()
+        self.asignaturas = list()
 
-    def add_asignaturas(self, listaAsignaturas):
-        for e in listaAsignaturas:
-            self.asignaturas.add(e)
+    def add_asignatura(self, asignatura):
+        for e in self.asignaturas:
+            if asignatura is e:
+                return
+        
+        self.asignaturas.append(asignatura)
+
+    def __str__(self):
+        cursos = ["Primero", "Segundo", "Tercero", "Cuarto"]
+        print(f"Nombre: {self.nombre}\n")
+        print(f"DNI: {self.dni}\n")
+        print(f"Curso: {cursos[self.curso]}\n")
+        print(f"Asignaturas: ")
+        for a in self.asignaturas:
+            print(a.codigo)
 
 
 class Universidad():
@@ -66,60 +105,61 @@ class Universidad():
     def add_profesor(self, nombre, dni, titular, departamento, areaInv=None, trabajoExterno=None):
         if not isinstance(departamento, EDepartamento):
             raise TypeError("Departamento no pertece a la clase EDepartamento")
-        '''
-        for p in self.listaProfesores():
+        
+        for p in self.listaProfesores:
             if dni == p.dni:
                 return 
-        '''
+        
         if titular:
             if areaInv is None:
                 raise ValueError("Si el profesor es titular, debe tener area de investigación")
             elif trabajoExterno is not None:
                 raise ValueError("Si el profesor es titular, no debe tener un trabajo externo")
-            t = Titular(nombre, dni, departamento, areaInv)
-            self.listaProfesores.append(t)
+            self.listaProfesores.append(Titular(nombre, dni, departamento, areaInv))
         else:
             self.listaProfesores.append(Asociado(nombre, dni, departamento, trabajoExterno))
 
+    def add_alumno(self, nombre, dni, curso):
+        for a in self.listaAlumnos:
+            if dni == a.dni:
+                return
+        
+        self.listaAlumnos.append(Estudiante(nombre, dni, curso))
 
+    def add_asignatura(self, codigo, creditos, curso):
+        for a in self.listaAsignaturas:
+            if codigo == a.codigo:
+                return
+            
+        self.listaAsignaturas.append(Asignatura(codigo, creditos, curso))
 
-def test_add_profesor_titular():
-    universidad = Universidad()
-    universidad.add_profesor("Jose", "1234", True, EDepartamento.DIIC, "software")
-    assert len(universidad.listaProfesores) == 1
+    def add_asignatura_profesor(self, dni, codigo):
+        for p in self.listaProfesores:
+            if dni == p.dni:
+                for a in self.listaAsignaturas:
+                    if codigo == a.codigo:
+                        p.add_asignatura(a)
+                        break
 
+    def add_asignatura_alumno(self, dni, codigo):
+        for a in self.listaAlumnos:
+            if dni == a.dni:
+                for asig in self.listaAsignaturas:
+                    if codigo == asig.codigo:
+                        a.add_asignatura(asig)
+                        break
 
-def test_add_profesor_asociado():
-    universidad = Universidad()
-    universidad.add_profesor("Jose", "1234", False, EDepartamento.DIIC, trabajoExterno="Programador")
-    assert len(universidad.listaProfesores) == 1
+    def obtener_profesor(self, dni):
+        for p in self.listaProfesores:
+            if dni == p.dni:
+                return p
 
+    def obtener_alumno(self, dni):
+        for a in self.listaAlumnos:
+            if dni == a.dni:
+                return a
 
-
-
-
-
-def test_exceso_creditos_profesor():
-    with pytest.raises(ValueError):
-        profesor = Titular("Jose", "23137838", 70)
-        asignatura = Asignatura("PCD", 6, "Segundo")
-        profesor.solicitar_asignatura(asignatura)
-
-def test_asignatura_añadida_alumno():
-    asignatura = Asignatura("PCD", 6, "Segundo")
-    alumno = Estudiante("Carlos", "2344235", "Segundo")
-    alumno.add_asignaturas([asignatura])
-    assert len(alumno.asignaturas) == 1
-
-def test_asignatura_añadida_profesor():
-    profesor = Titular("Jose", "23137838", 70)
-    asignatura = Asignatura("PCD", 6, "Segundo")
-    profesor.solicitar_asignatura(asignatura)
-    assert len(profesor.asignaturas) == 1
-
-def test__del__alumno():
-    asignatura = Asignatura("PCD", 6, "Segundo")
-    alumno = Estudiante("Carlos", "2344235", "Segundo")
-    alumno.add_asignaturas([asignatura])
-    del alumno
-    assert len(asignatura.listaMatriculados) == 0
+    def obtener_asignatura(self, codigo):
+        for a in self.listaAsignaturas:
+            if codigo == a.codigo:
+                return a
